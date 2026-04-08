@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
+  <meta name="description" content="極限シンプルなレトロ8bit避けゲー V3 - pixel-dodge">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="pixel-dodge">
+  <title>pixel-dodge V3 - ピクセル避けゲー</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+</head>
+<body>
+  <a href="#game" class="skip-link">ゲームへスキップ</a>
+  
+  <!-- V3: GP & Event Status Bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-item">
+      <span class="status-icon">💰</span>
+      <span class="status-label">GP: <span id="gpDisplay">0</span></span>
+    </div>
+    <button class="status-item event-badge" id="eventBadge" onclick="showEvents()" style="display: none;">
+      <span class="status-icon">🎉</span>
+      <span class="status-label">イベント開催中</span>
+    </button>
+  </div>
+  
+  <main id="game">
+    <div class="arcade-cabinet" role="img" aria-label="アーケード筐体">
+      <div class="crt-screen">
+        <canvas id="gameCanvas" width="320" height="480" aria-label="ゲーム画面" tabindex="0"></canvas>
+        <div class="scanlines" aria-hidden="true"></div>
+      </div>
+      
+      <div class="ui-overlay" aria-label="スコア表示">
+        <div class="score-display">
+          <span class="label">SCORE</span>
+          <span class="value" id="score" aria-live="polite">0</span>
+        </div>
+        <div class="score-display">
+          <span class="label">HIGH</span>
+          <span class="value" id="highScore" aria-live="polite">0</span>
+        </div>
+      </div>
+      
+      <!-- V3: Skin Selector -->
+      <div class="skin-selector" id="skinSelector">
+        <button class="skin-btn active" data-skin="default" onclick="selectSkin('default')">
+          <span class="skin-icon">⚡</span>
+          <span class="skin-name">デフォルト</span>
+        </button>
+        <button class="skin-btn locked" data-skin="retro" onclick="selectSkin('retro')">
+          <span class="skin-icon">👾</span>
+          <span class="skin-name">レトロ</span>
+          <span class="skin-price">800GP</span>
+        </button>
+        <button class="skin-btn locked" data-skin="neon" onclick="selectSkin('neon')">
+          <span class="skin-icon">🌟</span>
+          <span class="skin-name">ネオン</span>
+          <span class="skin-price">500GP</span>
+        </button>
+        <button class="skin-btn locked" data-skin="champion" onclick="selectSkin('champion')">
+          <span class="skin-icon">👑</span>
+          <span class="skin-name">チャンピオン</span>
+          <span class="skin-price">1200GP</span>
+        </button>
+      </div>
+      
+      <div class="game-over" id="gameOver" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="game-over-heading">
+        <h2 id="game-over-heading">GAME OVER</h2>
+        <p>SCORE: <span id="finalScore" aria-live="assertive">0</span></p>
+        <p id="gpEarned" class="gp-earned">+0 GP</p>
+        <div class="rank-info" id="rankInfo" style="display: none;">
+          <p>今週のランキング: <span id="weeklyRankDisplay">-</span>位</p>
+        </div>
+        <p class="instruction">タップ or スペースでリスタート</p>
+      </div>
+      
+      <div class="start-screen" id="startScreen" aria-label="ゲーム開始画面">
+        <h1>⚡ PIXEL DODGE V3</h1>
+        <p class="tagline">極限シンプル避けゲー</p>
+        
+        <!-- V3: Menu Buttons -->
+        <div class="menu-buttons">
+          <button class="menu-btn" onclick="showRanking()">
+            <span>🏆</span> ランキング
+          </button>
+          <button class="menu-btn" onclick="showShop()">
+            <span>🛒</span> GPショップ
+          </button>
+          <button class="menu-btn" onclick="showEvents()">
+            <span>📅</span> イベント
+          </button>
+        </div>
+        
+        <div class="controls-info" role="region" aria-label="操作説明">
+          <p><span aria-hidden="true">🎮</span> PC: スペースキー or ←→キー</p>
+          <p><span aria-hidden="true">📱</span> スマホ: タップで左右移動</p>
+        </div>
+        <p class="start-hint">タップ or スペースで開始</p>
+        <div class="touch-hint" aria-hidden="true">画面をタップしてスタート</div>
+      </div>
+    </div>
+    
+    <!-- Donation Section -->
+    <section class="donation-section" aria-label="作者応援">
+      <p>ピクセルゲームを応援してね 💙</p>
+      <div class="donation-buttons">
+        <a href="https://www.buymeacoffee.com/" target="_blank" rel="noopener noreferrer" class="bmc-button" aria-label="Buy Me a Coffeeで応援する">
+          <span aria-hidden="true">☕</span> 応援する
+        </a>
+        <a href="https://ko-fi.com/" target="_blank" rel="noopener noreferrer" class="kofi-button" aria-label="Ko-fiでコーヒーを贈る">
+          <span aria-hidden="true">❤️</span> Ko-fi
+        </a>
+      </div>
+    </section>
+  </main>
+  
+  <!-- V3: Ranking Modal -->
+  <div class="modal" id="rankingModal" role="dialog" aria-modal="true" aria-labelledby="ranking-title">
+    <div class="modal-content ranking-content">
+      <h2 id="ranking-title">🏆 ウィークリーランキング</h2>
+      <div class="ranking-tabs">
+        <button class="tab-btn active" onclick="switchRankingTab('global')">全体</button>
+        <button class="tab-btn" onclick="switchRankingTab('friends')">フレンド</button>
+      </div>
+      <div class="ranking-list" id="rankingList"></div>
+      <div class="my-ranking">
+        <span>あなたの順位: </span>
+        <span class="rank-number" id="myRank">圏外</span>
+      </div>
+      <button class="close-btn" onclick="closeModal('rankingModal')">閉じる</button>
+    </div>
+  </div>
+  
+  <!-- V3: Shop Modal -->
+  <div class="modal" id="shopModal" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+    <div class="modal-content shop-content">
+      <h2 id="shop-title">🛒 GPショップ</h2>
+      <p class="gp-balance">所持GP: <span id="shopGpDisplay">0</span></p>
+      <div class="shop-section">
+        <h3>スキン</h3>
+        <div class="shop-grid" id="shopSkinGrid"></div>
+      </div>
+      <div class="shop-section">
+        <h3>GPチャージ</h3>
+        <div class="gp-packages">
+          <button class="gp-package" onclick="purchaseGP(100, 100)">
+            <span class="gp-amount">100 GP</span>
+            <span class="gp-price">¥100</span>
+          </button>
+          <button class="gp-package" onclick="purchaseGP(500, 450)">
+            <span class="gp-amount">500 GP</span>
+            <span class="gp-price">¥450</span>
+          </button>
+          <button class="gp-package" onclick="purchaseGP(1000, 800)">
+            <span class="gp-amount">1000 GP</span>
+            <span class="gp-price">¥800</span>
+          </button>
+        </div>
+      </div>
+      <button class="close-btn" onclick="closeModal('shopModal')">閉じる</button>
+    </div>
+  </div>
+  
+  <!-- V3: Events Modal -->
+  <div class="modal" id="eventsModal" role="dialog" aria-modal="true" aria-labelledby="events-title">
+    <div class="modal-content events-content">
+      <h2 id="events-title">📅 イベント</h2>
+      <div class="event-list" id="eventList"></div>
+      <button class="close-btn" onclick="closeModal('eventsModal')">閉じる</button>
+    </div>
+  </div>
+  
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  
+  <script src="script.js"></script>
+  <script>
+    /* Register Service Worker */
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('SW registered'))
+        .catch(err => console.log('SW registration failed'));
+    }
+    
+    /* Keyboard Accessibility */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        document.body.classList.add('keyboard-navigation');
+      }
+    });
+    
+    document.addEventListener('mousedown', () => {
+      document.body.classList.remove('keyboard-navigation');
+    });
+    
+    /* Game Focus Management */
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (gameCanvas) {
+      gameCanvas.addEventListener('focus', () => {
+        gameCanvas.style.outline = '2px solid var(--neon-cyan)';
+      });
+      
+      gameCanvas.addEventListener('blur', () => {
+        gameCanvas.style.outline = 'none';
+      });
+    }
+  </script>
+</body>
+</html>
